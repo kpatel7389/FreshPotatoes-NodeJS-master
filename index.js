@@ -1,6 +1,6 @@
 const sqlite = require('sqlite'),
       Sequelize = require('sequelize'),
-      request = require('request'),
+      request = require('request-promise'),
       express = require('express'),
       app = express();
 
@@ -19,6 +19,7 @@ app.get('/films/:id/recommendations', getFilmRecommendations);
 // ROUTE HANDLER
 // need to get the film passed in and then use the key genre_id to find all films with that genre
 function getFilmRecommendations(req, res) {
+  let keys = Object.keys(req.query);
   let filmId = req.params.id;
 
   models.films.findFilmById(filmID)
@@ -30,6 +31,7 @@ function getFilmRecommendations(req, res) {
       laterDate.setFullYear(laterDate.getFullYear() - 15);
 
       models.film.findAll({
+        attributes: ['id', 'title', 'release_date', 'genre_id'],
         where: {
           genre_id: film['genre_id'],
           release_date: {
@@ -39,18 +41,31 @@ function getFilmRecommendations(req, res) {
             }
           }
         },
-        limit: 5
       })
       .then( (results) => {
-        res.json({'recommendations': results,
-          'meta': {'limit': 5, 'offset': 0}
+        recommendedFilms(results)
+        .then( (reviews) => {
+          res.json({'recommendations': reviews})
+        })
       });
-      })
     })
     .catch( (err) => {
-      res.send(err);
+      res.status(422);
+      res.json( {message: '"message" key missing!'});
     })
 
 }
+
+async function recommendedFilms(films) {
+  let review = films.map( (film) => {
+    return await request.get(`http://credentials-api.generalassemb.ly/4576f55f-c427-4cfc-a11c-5bfe914ca6c1?films=${film.id}`)
+  })
+  return review;
+}
+
+app.use(function(req, res, next) {
+  console.logt('route missing');
+  res.status(404).json({message: '"message" key missing!'});
+});
 
 module.exports = app;
