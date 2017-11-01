@@ -7,7 +7,6 @@ var basename  = path.basename(module.filename);
 var env       = process.env.NODE_ENV || 'development';
 var db        = {};
 
-
 var sequelize = new Sequelize('./db/database.db', '', '', {
 dialect: 'sqlite',
 storage: './db/database.db'
