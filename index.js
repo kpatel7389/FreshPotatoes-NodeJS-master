@@ -6,6 +6,8 @@ const sqlite = require('sqlite'),
 
 const { PORT=3000, NODE_ENV='development', DB_PATH='./db/database.db' } = process.env;
 
+const models = require('./models');
+
 // START SERVER
 Promise.resolve()
   .then(() => app.listen(PORT, () => console.log(`App listening on port ${PORT}`)))
@@ -15,8 +17,40 @@ Promise.resolve()
 app.get('/films/:id/recommendations', getFilmRecommendations);
 
 // ROUTE HANDLER
+// need to get the film passed in and then use the key genre_id to find all films with that genre
 function getFilmRecommendations(req, res) {
-  res.status(500).send('Not Implemented');
+  let filmId = req.params.id;
+
+  models.films.findFilmById(filmID)
+    .then( (film) => {
+      let recentDate = new Date(film.release_date);
+      let laterDate = new Date(film.release_date);
+
+      recentDate.setFullYear(recentDate.getFullYear() + 15);
+      laterDate.setFullYear(laterDate.getFullYear() - 15);
+
+      models.film.findAll({
+        where: {
+          genre_id: film['genre_id'],
+          release_date: {
+            $and: {
+              $gt: laterDate,
+              $lt: recentDate
+            }
+          }
+        },
+        limit: 5
+      })
+      .then( (results) => {
+        res.json({'recommendations': results,
+          'meta': {'limit': 5, 'offset': 0}
+      });
+      })
+    })
+    .catch( (err) => {
+      res.send(err);
+    })
+
 }
 
 module.exports = app;
